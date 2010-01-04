@@ -1,4 +1,0 @@
-from pyparsing import *
-
-'<pre class="ebnf">'
-'</pre>'
