@@ -2,5 +2,5 @@
 
 import sys, os
 print os.popen('git add .').read()
-print os.popen('git commit -a -m "%s"' %
-sys.argv[1]).read()
+print os.popen('git commit -a -m "%s"' % sys.argv[1]).read()
+print os.popen('git push origin master').read()
