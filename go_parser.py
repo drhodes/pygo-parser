@@ -1,16 +1,9 @@
+# Derek Rhodes / physci@gmail.com 
+# 01/04/10
+
 from pyparsing import *
 
-#==================================================================
-# a testing function, the global thing makes testing cleaner.
-
-def testParse(name, xs):
-    upperName = ''.join(x.upper() for x in name ) 
-    f = globals()[name].parseString # cleaner
-    print "--------------------------------------------------------------------"
-    print upperName
-    print
-    for x in xs:
-        print x, (40-len(x))*" ", "=>", f(x)
+def literals_(xs): return Or(map(Literal, xs))
 
 LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE = map(Literal, "()[]{}")
 COMMA = Literal(",")
@@ -23,8 +16,6 @@ EQUAL = Literal("=")
 #  unicode_char   = /* an arbitrary Unicode code point */ .
 #  unicode_letter = /* a Unicode code point classified as "Letter" */ .
 #  unicode_digit  = /* a Unicode code point classified as "Digit" */ .
-
-def literals_(xs): return Or(map(Literal, xs))
 
 unicode_char   = alphanums #'''   # Not really sure about this.
                            # what about -, or + ?? 
@@ -49,7 +40,7 @@ hex_digit     = unicode_digit + "ABCDEF" + "abcdef"
 
 #-------------------------------------------------------------------------
 #  identifier = letter { letter | unicode_digit } .
-identifier = Word( letter + unicode_digit )
+identifier = Word(letter) + Word( letter + unicode_digit )
 
 #-------------------------------------------------------------------------
 #  PackageClause  = "package" PackageName .
@@ -57,16 +48,16 @@ identifier = Word( letter + unicode_digit )
 PackageName = identifier
 PackageClause = Suppress("package") + PackageName
 
-testParse("PackageClause", ["package foo"])
+#testParse("PackageClause", ["package foo"])
 
 #-------------------------------------------------------------------------
 #  QualifiedIdent = [ PackageName "." ] identifier .
 DOT = Literal( "." )
 QualifiedIdent = Optional( PackageName + DOT ) + identifier 
 
-testParse("QualifiedIdent", ["fmt.Printf",
-                             "asdf",
-                             ])
+#testParse("QualifiedIdent", ["fmt.Printf",
+#                             "asdf",
+#                             ])
 
 
 #-------------------------------------------------------------------------
@@ -85,9 +76,6 @@ octal_lit   = Literal("0") + Word(octal_digit)
 hex_lit     = (Literal("0x") | Literal("0X")) + Word(hex_digit)
 int_lit     = decimal_lit | octal_lit | hex_lit
 
-testParse("int_lit", ["0x345", "0345", "345"])
-
-
 #-------------------------------------------------------------------------
 # decimals  = decimal_digit { decimal_digit } .
 # exponent  = ( "e" | "E" ) [ "+" | "-" ] decimals .
@@ -104,22 +92,11 @@ float_lit = (Or( decimals + Literal(".") + Optional(decimals) + Optional(exponen
              (decimals + exponent) |
              (Literal(".") + decimals | exponent))
 
-testParse("float_lit", ["2.34e34",
-                        "0234e-34",
-                        "0234e+34"])
-
 
 #-------------------------------------------------------------------------
 #  escaped_char     = `\` ( "a" | "b" | "f" | "n" | "r" | "t" | "v" | `\` | "'" | `"` ) .
-escaped_char = Literal("\\") + literals_('''abfnrtv'"''') | Literal(r"\\")
+escaped_char = Literal("\\") + (literals_('''abfnrtv'"''') | Literal(r"\\"))
 
-print 
-testParse("escaped_char", [r'\n',
-                           r'\a',
-                           r'\"',
-                           r"\'",
-                           r'\\',
-                           ])
 
 #-------------------------------------------------------------------------
 #  octal_byte_value = `\` octal_digit octal_digit octal_digit .
@@ -137,12 +114,6 @@ little_u_value   = BACKSLASH + Literal("u") + HexDigit + HexDigit + HexDigit + H
 big_u_value      = (BACKSLASH + Literal("U") + HexDigit + HexDigit + HexDigit + HexDigit 
                                              + HexDigit + HexDigit + HexDigit + HexDigit)
 
-testParse('octal_byte_value', ["""\\123"""])
-testParse('hex_byte_value', ["""\\x00"""])
-testParse('little_u_value', ["""\\u1234"""])
-testParse('big_u_value', ["""\\U12345678"""])
-
-
 #-------------------------------------------------------------------------
 #  byte_value       = octal_byte_value | hex_byte_value
 #  unicode_value    = unicode_char | little_u_value | big_u_value | escaped_char .
@@ -153,21 +124,6 @@ byte_value       = octal_byte_value | hex_byte_value
 unicode_value    = little_u_value | big_u_value | escaped_char | literals_(unicode_char)
 char_lit         = SQUOTE + (byte_value | unicode_value ) + SQUOTE
 
-testParse("byte_value", ["""\\111""",
-                         """\\x12"""
-                         ])
-
-testParse("unicode_value", ["\\u1111",
-                            "\\U11112222",
-                            ])
-
-testParse("char_lit", [""" '\\x12' """,
-                       """ '\\x11' """,
-                       """ '\\x12' """,
-                       """ '\\u1111' """,
-                       """ '\\U11112222' """,                  
-                       """ 'j' """,
-                       ])
                        
 #-------------------------------------------------------------------------
 #  raw_string_lit         = "`" { unicode_char } "`" .
@@ -182,15 +138,6 @@ interpreted_string_lit = DQUOTE + ( Word(unicode_char) | byte_value ) + DQUOTE
 #interpreted_string_lit = DQUOTE + ( Word(unicode_value) | Word(byte_value) ) + DQUOTE
 string_lit             = raw_string_lit | interpreted_string_lit
 
-testParse("raw_string_lit", [" `a` ",
-                             " `asd123f` ",
-                             ])
-
-testParse("interpreted_string_lit", [' "000000" ',
-                                     ])
-
-testParse("string_lit", [' "000000" ',
-                                     ])
 
 #-------------------------------------------------------------------------
 log_op     = literals_(["||", "&&"])
@@ -236,31 +183,17 @@ LiteralType   << ( StructType | ArrayType | LBRACKET + Literal("...") + RBRACKET
 #  CompositeLit  = LiteralType "{" [ ElementList [ "," ] ] "}" .
 CompositeLit  = LiteralType + LBRACE + Optional( ElementList + Optional(COMMA)) + RBRACE
 
-#-------------------------------------------------------------------------
-#  GoLiteral    = BasicLit | CompositeLit | FunctionLit .
-#  Operand    = GoLiteral | QualifiedIdent | MethodExpr | "(" Expression ")" .
-
-
-#-------------------------------------------------------------------------
-#  PrimaryExpr =
-#          Operand |
-#          Conversion |
-#          BuiltinCall |
-#          PrimaryExpr Selector |
-#          PrimaryExpr Index |
-#          PrimaryExpr Slice |
-#          PrimaryExpr TypeAssertion |
-#          PrimaryExpr Call .
-PrimaryExpr = Forward()
 
 #-------------------------------------------------------------------------
 #  UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
 #  Expression = UnaryExpr | Expression binary_op UnaryExpr .
+PrimaryExpr = Forward()
 UnaryExpr  = Forward()
 Expression = Forward()
 
 UnaryExpr  << ( PrimaryExpr | unary_op + UnaryExpr )
 Expression << ( UnaryExpr | ( Expression + binary_op + UnaryExpr ))
+
 
 #-------------------------------------------------------------------------
 #  ExpressionList = Expression { "," Expression } .
@@ -599,21 +532,11 @@ ImportDecl       = Literal("import") + Group( ImportSpec | (LPAREN + ZeroOrMore(
 #  PackageName    = identifier .
 #  PackageClause  = "package" PackageName .
 #  SourceFile     = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
-PackageName    = identifier 
-PackageClause  = Literal("package") + PackageName 
+#PackageName    = identifier 
+#PackageClause  = Literal("package") + PackageName 
 SourceFile     = PackageClause + SEMI + ZeroOrMore( ImportDecl + SEMI ) + ZeroOrMore( TopLevelDecl + SEMI )
 
 
-testParse("PackageClause", ["package asdf"])
 
 
-example ="""
-package main 
 
-import . "fmt";
-
-func main(){
-    Printf("ASDF");
-}
-"""
-print SourceFile.parseString(example)
