@@ -1,0 +1,285 @@
+<pre class="ebnf">
+<a id="unicode_char">unicode_char</a>   = /* an arbitrary Unicode code point */ .
+<a id="unicode_letter">unicode_letter</a> = /* a Unicode code point classified as "Letter" */ .
+<a id="unicode_digit">unicode_digit</a>  = /* a Unicode code point classified as "Digit" */ .
+</pre>
+<pre class="ebnf">
+<a id="letter">letter</a>        = <a href="#unicode_letter" class="noline">unicode_letter</a> | "_" .
+<a id="decimal_digit">decimal_digit</a> = "0" ... "9" .
+<a id="octal_digit">octal_digit</a>   = "0" ... "7" .
+<a id="hex_digit">hex_digit</a>     = "0" ... "9" | "A" ... "F" | "a" ... "f" .
+</pre>
+<pre class="ebnf">
+<a id="identifier">identifier</a> = <a href="#letter" class="noline">letter</a> { <a href="#letter" class="noline">letter</a> | <a href="#unicode_digit" class="noline">unicode_digit</a> } .
+</pre>
+<pre class="ebnf">
+<a id="int_lit">int_lit</a>     = <a href="#decimal_lit" class="noline">decimal_lit</a> | <a href="#octal_lit" class="noline">octal_lit</a> | <a href="#hex_lit" class="noline">hex_lit</a> .
+<a id="decimal_lit">decimal_lit</a> = ( "1" ... "9" ) { <a href="#decimal_digit" class="noline">decimal_digit</a> } .
+<a id="octal_lit">octal_lit</a>   = "0" { <a href="#octal_digit" class="noline">octal_digit</a> } .
+<a id="hex_lit">hex_lit</a>     = "0" ( "x" | "X" ) <a href="#hex_digit" class="noline">hex_digit</a> { <a href="#hex_digit" class="noline">hex_digit</a> } .
+</pre>
+<pre class="ebnf">
+<a id="float_lit">float_lit</a> = <a href="#decimals" class="noline">decimals</a> "." [ <a href="#decimals" class="noline">decimals</a> ] [ <a href="#exponent" class="noline">exponent</a> ] |
+            <a href="#decimals" class="noline">decimals</a> <a href="#exponent" class="noline">exponent</a> |
+            "." <a href="#decimals" class="noline">decimals</a> [ <a href="#exponent" class="noline">exponent</a> ] .
+<a id="decimals">decimals</a>  = <a href="#decimal_digit" class="noline">decimal_digit</a> { <a href="#decimal_digit" class="noline">decimal_digit</a> } .
+<a id="exponent">exponent</a>  = ( "e" | "E" ) [ "+" | "-" ] <a href="#decimals" class="noline">decimals</a> .
+</pre>
+<pre class="ebnf">
+<a id="char_lit">char_lit</a>         = "'" ( <a href="#unicode_value" class="noline">unicode_value</a> | <a href="#byte_value" class="noline">byte_value</a> ) "'" .
+<a id="unicode_value">unicode_value</a>    = <a href="#unicode_char" class="noline">unicode_char</a> | <a href="#little_u_value" class="noline">little_u_value</a> | <a href="#big_u_value" class="noline">big_u_value</a> | <a href="#escaped_char" class="noline">escaped_char</a> .
+<a id="byte_value">byte_value</a>       = <a href="#octal_byte_value" class="noline">octal_byte_value</a> | <a href="#hex_byte_value" class="noline">hex_byte_value</a> .
+<a id="octal_byte_value">octal_byte_value</a> = `\` <a href="#octal_digit" class="noline">octal_digit</a> <a href="#octal_digit" class="noline">octal_digit</a> <a href="#octal_digit" class="noline">octal_digit</a> .
+<a id="hex_byte_value">hex_byte_value</a>   = `\` "x" <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> .
+<a id="little_u_value">little_u_value</a>   = `\` "u" <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> .
+<a id="big_u_value">big_u_value</a>      = `\` "U" <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a>
+                           <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> <a href="#hex_digit" class="noline">hex_digit</a> .
+<a id="escaped_char">escaped_char</a>     = `\` ( "a" | "b" | "f" | "n" | "r" | "t" | "v" | `\` | "'" | `"` ) .
+</pre>
+<pre class="ebnf">
+<a id="string_lit">string_lit</a>             = <a href="#raw_string_lit" class="noline">raw_string_lit</a> | <a href="#interpreted_string_lit" class="noline">interpreted_string_lit</a> .
+<a id="raw_string_lit">raw_string_lit</a>         = "`" { <a href="#unicode_char" class="noline">unicode_char</a> } "`" .
+<a id="interpreted_string_lit">interpreted_string_lit</a> = `"` { <a href="#unicode_value" class="noline">unicode_value</a> | <a href="#byte_value" class="noline">byte_value</a> } `"` .
+</pre>
+<pre class="ebnf">
+<a id="Type">Type</a>      = <a href="#TypeName" class="noline">TypeName</a> | <a href="#TypeLit" class="noline">TypeLit</a> | "(" <a href="#Type" class="noline">Type</a> ")" .
+<a id="TypeName">TypeName</a>  = <a href="#QualifiedIdent" class="noline">QualifiedIdent</a>.
+<a id="TypeLit">TypeLit</a>   = <a href="#ArrayType" class="noline">ArrayType</a> | <a href="#StructType" class="noline">StructType</a> | <a href="#PointerType" class="noline">PointerType</a> | <a href="#FunctionType" class="noline">FunctionType</a> | <a href="#InterfaceType" class="noline">InterfaceType</a> |
+	    <a href="#SliceType" class="noline">SliceType</a> | <a href="#MapType" class="noline">MapType</a> | <a href="#ChannelType" class="noline">ChannelType</a> .
+</pre>
+<pre class="ebnf">
+<a id="ArrayType">ArrayType</a>   = "[" <a href="#ArrayLength" class="noline">ArrayLength</a> "]" <a href="#ElementType" class="noline">ElementType</a> .
+<a id="ArrayLength">ArrayLength</a> = <a href="#Expression" class="noline">Expression</a> .
+<a id="ElementType">ElementType</a> = <a href="#Type" class="noline">Type</a> .
+</pre>
+<pre class="ebnf">
+<a id="SliceType">SliceType</a> = "[" "]" <a href="#ElementType" class="noline">ElementType</a> .
+</pre>
+<pre class="ebnf">
+<a id="StructType">StructType</a>     = "struct" "{" { <a href="#FieldDecl" class="noline">FieldDecl</a> ";" } "}" .
+<a id="FieldDecl">FieldDecl</a>      = (<a href="#IdentifierList" class="noline">IdentifierList</a> <a href="#Type" class="noline">Type</a> | <a href="#AnonymousField" class="noline">AnonymousField</a>) [ <a href="#Tag" class="noline">Tag</a> ] .
+<a id="AnonymousField">AnonymousField</a> = [ "*" ] <a href="#TypeName" class="noline">TypeName</a> .
+<a id="Tag">Tag</a>            = <a href="#string_lit" class="noline">string_lit</a> .
+</pre>
+<pre class="ebnf">
+<a id="PointerType">PointerType</a> = "*" <a href="#BaseType" class="noline">BaseType</a> .
+<a id="BaseType">BaseType</a> = <a href="#Type" class="noline">Type</a> .
+</pre>
+<pre class="ebnf">
+<a id="FunctionType">FunctionType</a>   = "func" <a href="#Signature" class="noline">Signature</a> .
+<a id="Signature">Signature</a>      = <a href="#Parameters" class="noline">Parameters</a> [ <a href="#Result" class="noline">Result</a> ] .
+<a id="Result">Result</a>         = <a href="#Parameters" class="noline">Parameters</a> | <a href="#Type" class="noline">Type</a> .
+<a id="Parameters">Parameters</a>     = "(" [ <a href="#ParameterList" class="noline">ParameterList</a> [ "," ] ] ")" .
+<a id="ParameterList">ParameterList</a>  = <a href="#ParameterDecl" class="noline">ParameterDecl</a> { "," <a href="#ParameterDecl" class="noline">ParameterDecl</a> } .
+<a id="ParameterDecl">ParameterDecl</a>  = [ <a href="#IdentifierList" class="noline">IdentifierList</a> ] ( <a href="#Type" class="noline">Type</a> | "..." ) .
+</pre>
+<pre class="ebnf">
+<a id="InterfaceType">InterfaceType</a>      = "interface" "{" { <a href="#MethodSpec" class="noline">MethodSpec</a> ";" } "}" .
+<a id="MethodSpec">MethodSpec</a>         = <a href="#MethodName" class="noline">MethodName</a> <a href="#Signature" class="noline">Signature</a> | <a href="#InterfaceTypeName" class="noline">InterfaceTypeName</a> .
+<a id="MethodName">MethodName</a>         = <a href="#identifier" class="noline">identifier</a> .
+<a id="InterfaceTypeName">InterfaceTypeName</a>  = <a href="#TypeName" class="noline">TypeName</a> .
+</pre>
+<pre class="ebnf">
+<a id="MapType">MapType</a>     = "map" "[" <a href="#KeyType" class="noline">KeyType</a> "]" <a href="#ElementType" class="noline">ElementType</a> .
+<a id="KeyType">KeyType</a>     = <a href="#Type" class="noline">Type</a> .
+</pre>
+<pre class="ebnf">
+<a id="ChannelType">ChannelType</a>   = <a href="#Channel" class="noline">Channel</a> | <a href="#SendChannel" class="noline">SendChannel</a> | <a href="#RecvChannel" class="noline">RecvChannel</a> .
+<a id="Channel">Channel</a>       = "chan" <a href="#ElementType" class="noline">ElementType</a> .
+<a id="SendChannel">SendChannel</a>   = "chan" "&lt;-" <a href="#ElementType" class="noline">ElementType</a> .
+<a id="RecvChannel">RecvChannel</a>   = "&lt;-" "chan" <a href="#ElementType" class="noline">ElementType</a> .
+</pre>
+<pre class="ebnf">
+<a id="Block">Block</a> = "{" { <a href="#Statement" class="noline">Statement</a> ";" } "}" .
+</pre>
+<pre class="ebnf">
+<a id="Declaration">Declaration</a>   = <a href="#ConstDecl" class="noline">ConstDecl</a> | <a href="#TypeDecl" class="noline">TypeDecl</a> | <a href="#VarDecl" class="noline">VarDecl</a> .
+<a id="TopLevelDecl">TopLevelDecl</a>  = <a href="#Declaration" class="noline">Declaration</a> | <a href="#FunctionDecl" class="noline">FunctionDecl</a> | <a href="#MethodDecl" class="noline">MethodDecl</a> .
+</pre>
+<pre class="ebnf">
+<a id="ConstDecl">ConstDecl</a>      = "const" ( <a href="#ConstSpec" class="noline">ConstSpec</a> | "(" { <a href="#ConstSpec" class="noline">ConstSpec</a> ";" } ")" ) .
+<a id="ConstSpec">ConstSpec</a>      = <a href="#IdentifierList" class="noline">IdentifierList</a> [ [ <a href="#Type" class="noline">Type</a> ] "=" <a href="#ExpressionList" class="noline">ExpressionList</a> ] .
+
+<a id="IdentifierList">IdentifierList</a> = <a href="#identifier" class="noline">identifier</a> { "," <a href="#identifier" class="noline">identifier</a> } .
+<a id="ExpressionList">ExpressionList</a> = <a href="#Expression" class="noline">Expression</a> { "," <a href="#Expression" class="noline">Expression</a> } .
+</pre>
+<pre class="ebnf">
+<a id="TypeDecl">TypeDecl</a>     = "type" ( <a href="#TypeSpec" class="noline">TypeSpec</a> | "(" { <a href="#TypeSpec" class="noline">TypeSpec</a> ";" } ")" ) .
+<a id="TypeSpec">TypeSpec</a>     = <a href="#identifier" class="noline">identifier</a> <a href="#Type" class="noline">Type</a> .
+</pre>
+<pre class="ebnf">
+<a id="VarDecl">VarDecl</a>     = "var" ( <a href="#VarSpec" class="noline">VarSpec</a> | "(" { <a href="#VarSpec" class="noline">VarSpec</a> ";" } ")" ) .
+<a id="VarSpec">VarSpec</a>     = <a href="#IdentifierList" class="noline">IdentifierList</a> ( <a href="#Type" class="noline">Type</a> [ "=" <a href="#ExpressionList" class="noline">ExpressionList</a> ] | "=" <a href="#ExpressionList" class="noline">ExpressionList</a> ) .
+</pre>
+<pre class="ebnf">
+<a id="ShortVarDecl">ShortVarDecl</a> = <a href="#IdentifierList" class="noline">IdentifierList</a> ":=" <a href="#ExpressionList" class="noline">ExpressionList</a> .
+</pre>
+<pre class="ebnf">
+<a id="FunctionDecl">FunctionDecl</a> = "func" <a href="#identifier" class="noline">identifier</a> <a href="#Signature" class="noline">Signature</a> [ <a href="#Body" class="noline">Body</a> ] .
+<a id="Body">Body</a>         = <a href="#Block" class="noline">Block</a>.
+</pre>
+<pre class="ebnf">
+<a id="MethodDecl">MethodDecl</a>   = "func" <a href="#Receiver" class="noline">Receiver</a> <a href="#MethodName" class="noline">MethodName</a> <a href="#Signature" class="noline">Signature</a> [ <a href="#Body" class="noline">Body</a> ] .
+<a id="Receiver">Receiver</a>     = "(" [ <a href="#identifier" class="noline">identifier</a> ] [ "*" ] <a href="#BaseTypeName" class="noline">BaseTypeName</a> ")" .
+<a id="BaseTypeName">BaseTypeName</a> = <a href="#identifier" class="noline">identifier</a> .
+</pre>
+<pre class="ebnf">
+<a id="Operand">Operand</a>    = <a href="#Literal" class="noline">Literal</a> | <a href="#QualifiedIdent" class="noline">QualifiedIdent</a> | <a href="#MethodExpr" class="noline">MethodExpr</a> | "(" <a href="#Expression" class="noline">Expression</a> ")" .
+<a id="Literal">Literal</a>    = <a href="#BasicLit" class="noline">BasicLit</a> | <a href="#CompositeLit" class="noline">CompositeLit</a> | <a href="#FunctionLit" class="noline">FunctionLit</a> .
+<a id="BasicLit">BasicLit</a>   = <a href="#int_lit" class="noline">int_lit</a> | <a href="#float_lit" class="noline">float_lit</a> | <a href="#char_lit" class="noline">char_lit</a> | <a href="#string_lit" class="noline">string_lit</a> .
+</pre>
+<pre class="ebnf">
+<a id="QualifiedIdent">QualifiedIdent</a> = [ <a href="#PackageName" class="noline">PackageName</a> "." ] <a href="#identifier" class="noline">identifier</a> .
+</pre>
+<pre class="ebnf">
+<a id="CompositeLit">CompositeLit</a>  = <a href="#LiteralType" class="noline">LiteralType</a> "{" [ <a href="#ElementList" class="noline">ElementList</a> [ "," ] ] "}" .
+<a id="LiteralType">LiteralType</a>   = <a href="#StructType" class="noline">StructType</a> | <a href="#ArrayType" class="noline">ArrayType</a> | "[" "..." "]" <a href="#ElementType" class="noline">ElementType</a> |
+                <a href="#SliceType" class="noline">SliceType</a> | <a href="#MapType" class="noline">MapType</a> | <a href="#TypeName" class="noline">TypeName</a> | "(" <a href="#LiteralType" class="noline">LiteralType</a> ")" .
+<a id="ElementList">ElementList</a>   = <a href="#Element" class="noline">Element</a> { "," <a href="#Element" class="noline">Element</a> } .
+<a id="Element">Element</a>       = [ <a href="#Key" class="noline">Key</a> ":" ] <a href="#Value" class="noline">Value</a> .
+<a id="Key">Key</a>           = <a href="#FieldName" class="noline">FieldName</a> | <a href="#ElementIndex" class="noline">ElementIndex</a> .
+<a id="FieldName">FieldName</a>     = <a href="#identifier" class="noline">identifier</a> .
+<a id="ElementIndex">ElementIndex</a>  = <a href="#Expression" class="noline">Expression</a> .
+<a id="Value">Value</a>         = <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="FunctionLit">FunctionLit</a> = <a href="#FunctionType" class="noline">FunctionType</a> <a href="#Body" class="noline">Body</a> .
+</pre>
+<pre class="ebnf">
+<a id="PrimaryExpr">PrimaryExpr</a> =
+	<a href="#Operand" class="noline">Operand</a> |
+	<a href="#Conversion" class="noline">Conversion</a> |
+	<a href="#BuiltinCall" class="noline">BuiltinCall</a> |
+	<a href="#PrimaryExpr" class="noline">PrimaryExpr</a> <a href="#Selector" class="noline">Selector</a> |
+	<a href="#PrimaryExpr" class="noline">PrimaryExpr</a> <a href="#Index" class="noline">Index</a> |
+	<a href="#PrimaryExpr" class="noline">PrimaryExpr</a> <a href="#Slice" class="noline">Slice</a> |
+	<a href="#PrimaryExpr" class="noline">PrimaryExpr</a> <a href="#TypeAssertion" class="noline">TypeAssertion</a> |
+	<a href="#PrimaryExpr" class="noline">PrimaryExpr</a> <a href="#Call" class="noline">Call</a> .
+
+<a id="Selector">Selector</a>       = "." <a href="#identifier" class="noline">identifier</a> .
+<a id="Index">Index</a>          = "[" <a href="#Expression" class="noline">Expression</a> "]" .
+<a id="Slice">Slice</a>          = "[" <a href="#Expression" class="noline">Expression</a> ":" [ <a href="#Expression" class="noline">Expression</a> ] "]" .
+<a id="TypeAssertion">TypeAssertion</a>  = "." "(" <a href="#Type" class="noline">Type</a> ")" .
+<a id="Call">Call</a>           = "(" [ <a href="#ExpressionList" class="noline">ExpressionList</a> [ "," ] ] ")" .
+</pre>
+<pre class="ebnf">
+<a id="Expression">Expression</a> = <a href="#UnaryExpr" class="noline">UnaryExpr</a> | <a href="#Expression" class="noline">Expression</a> <a href="#binary_op" class="noline">binary_op</a> <a href="#UnaryExpr" class="noline">UnaryExpr</a> .
+<a id="UnaryExpr">UnaryExpr</a>  = <a href="#PrimaryExpr" class="noline">PrimaryExpr</a> | <a href="#unary_op" class="noline">unary_op</a> <a href="#UnaryExpr" class="noline">UnaryExpr</a> .
+
+<a id="binary_op">binary_op</a>  = <a href="#log_op" class="noline">log_op</a> | <a href="#com_op" class="noline">com_op</a> | <a href="#rel_op" class="noline">rel_op</a> | <a href="#add_op" class="noline">add_op</a> | <a href="#mul_op" class="noline">mul_op</a> .
+<a id="log_op">log_op</a>     = "||" | "&amp;&amp;" .
+<a id="com_op">com_op</a>     = "&lt;-" .
+<a id="rel_op">rel_op</a>     = "==" | "!=" | "&lt;" | "&lt;=" | ">" | ">=" .
+<a id="add_op">add_op</a>     = "+" | "-" | "|" | "^" .
+<a id="mul_op">mul_op</a>     = "*" | "/" | "%" | "&lt;&lt;" | "&gt;&gt;" | "&amp;" | "&amp;^" .
+
+<a id="unary_op">unary_op</a>   = "+" | "-" | "!" | "^" | "*" | "&amp;" | "&lt;-" .
+</pre>
+<pre class="ebnf">
+<a id="MethodExpr">MethodExpr</a>    = <a href="#ReceiverType" class="noline">ReceiverType</a> "." <a href="#MethodName" class="noline">MethodName</a> .
+<a id="ReceiverType">ReceiverType</a>  = <a href="#TypeName" class="noline">TypeName</a> | "(" "*" <a href="#TypeName" class="noline">TypeName</a> ")" .
+</pre>
+<pre class="ebnf">
+<a id="Conversion">Conversion</a> = <a href="#LiteralType" class="noline">LiteralType</a> "(" <a href="#Expression" class="noline">Expression</a> ")" .
+</pre>
+<pre class="ebnf">
+<a id="Statement">Statement</a> =
+	<a href="#Declaration" class="noline">Declaration</a> | <a href="#LabeledStmt" class="noline">LabeledStmt</a> | <a href="#SimpleStmt" class="noline">SimpleStmt</a> |
+	<a href="#GoStmt" class="noline">GoStmt</a> | <a href="#ReturnStmt" class="noline">ReturnStmt</a> | <a href="#BreakStmt" class="noline">BreakStmt</a> | <a href="#ContinueStmt" class="noline">ContinueStmt</a> | <a href="#GotoStmt" class="noline">GotoStmt</a> |
+	<a href="#FallthroughStmt" class="noline">FallthroughStmt</a> | <a href="#Block" class="noline">Block</a> | <a href="#IfStmt" class="noline">IfStmt</a> | <a href="#SwitchStmt" class="noline">SwitchStmt</a> | <a href="#SelectStmt" class="noline">SelectStmt</a> | <a href="#ForStmt" class="noline">ForStmt</a> |
+	<a href="#DeferStmt" class="noline">DeferStmt</a> .
+
+<a id="SimpleStmt">SimpleStmt</a> = <a href="#EmptyStmt" class="noline">EmptyStmt</a> | <a href="#ExpressionStmt" class="noline">ExpressionStmt</a> | <a href="#IncDecStmt" class="noline">IncDecStmt</a> | <a href="#Assignment" class="noline">Assignment</a> | <a href="#ShortVarDecl" class="noline">ShortVarDecl</a> .
+</pre>
+<pre class="ebnf">
+<a id="EmptyStmt">EmptyStmt</a> = .
+</pre>
+<pre class="ebnf">
+<a id="LabeledStmt">LabeledStmt</a> = <a href="#Label" class="noline">Label</a> ":" <a href="#Statement" class="noline">Statement</a> .
+<a id="Label">Label</a>       = <a href="#identifier" class="noline">identifier</a> .
+</pre>
+<pre class="ebnf">
+<a id="ExpressionStmt">ExpressionStmt</a> = <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="IncDecStmt">IncDecStmt</a> = <a href="#Expression" class="noline">Expression</a> ( "++" | "--" ) .
+</pre>
+<pre class="ebnf">
+<a id="Assignment">Assignment</a> = <a href="#ExpressionList" class="noline">ExpressionList</a> <a href="#assign_op" class="noline">assign_op</a> <a href="#ExpressionList" class="noline">ExpressionList</a> .
+
+<a id="assign_op">assign_op</a> = [ <a href="#add_op" class="noline">add_op</a> | <a href="#mul_op" class="noline">mul_op</a> ] "=" .
+</pre>
+<pre class="ebnf">
+<a id="IfStmt">IfStmt</a>    = "if" [ <a href="#SimpleStmt" class="noline">SimpleStmt</a> ";" ] [ <a href="#Expression" class="noline">Expression</a> ] <a href="#Block" class="noline">Block</a> [ "else" <a href="#Statement" class="noline">Statement</a> ] .
+</pre>
+<pre class="ebnf">
+<a id="SwitchStmt">SwitchStmt</a> = <a href="#ExprSwitchStmt" class="noline">ExprSwitchStmt</a> | <a href="#TypeSwitchStmt" class="noline">TypeSwitchStmt</a> .
+</pre>
+<pre class="ebnf">
+<a id="ExprSwitchStmt">ExprSwitchStmt</a> = "switch" [ <a href="#SimpleStmt" class="noline">SimpleStmt</a> ";" ] [ <a href="#Expression" class="noline">Expression</a> ] "{" { <a href="#ExprCaseClause" class="noline">ExprCaseClause</a> } "}" .
+<a id="ExprCaseClause">ExprCaseClause</a> = <a href="#ExprSwitchCase" class="noline">ExprSwitchCase</a> ":" { <a href="#Statement" class="noline">Statement</a> ";" } .
+<a id="ExprSwitchCase">ExprSwitchCase</a> = "case" <a href="#ExpressionList" class="noline">ExpressionList</a> | "default" .
+</pre>
+<pre class="ebnf">
+<a id="TypeSwitchStmt">TypeSwitchStmt</a>  = "switch" [ <a href="#SimpleStmt" class="noline">SimpleStmt</a> ";" ] <a href="#TypeSwitchGuard" class="noline">TypeSwitchGuard</a> "{" { <a href="#TypeCaseClause" class="noline">TypeCaseClause</a> } "}" .
+<a id="TypeSwitchGuard">TypeSwitchGuard</a> = [ <a href="#identifier" class="noline">identifier</a> ":=" ] <a href="#Expression" class="noline">Expression</a> "." "(" "type" ")" .
+<a id="TypeCaseClause">TypeCaseClause</a>  = <a href="#TypeSwitchCase" class="noline">TypeSwitchCase</a> ":" { <a href="#Statement" class="noline">Statement</a> ";" } .
+<a id="TypeSwitchCase">TypeSwitchCase</a>  = "case" <a href="#TypeList" class="noline">TypeList</a> | "default" .
+<a id="TypeList">TypeList</a>        = <a href="#Type" class="noline">Type</a> { "," <a href="#Type" class="noline">Type</a> } .
+</pre>
+<pre class="ebnf">
+<a id="ForStmt">ForStmt</a> = "for" [ <a href="#Condition" class="noline">Condition</a> | <a href="#ForClause" class="noline">ForClause</a> | <a href="#RangeClause" class="noline">RangeClause</a> ] <a href="#Block" class="noline">Block</a> .
+<a id="Condition">Condition</a> = <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="ForClause">ForClause</a> = [ <a href="#InitStmt" class="noline">InitStmt</a> ] ";" [ <a href="#Condition" class="noline">Condition</a> ] ";" [ <a href="#PostStmt" class="noline">PostStmt</a> ] .
+<a id="InitStmt">InitStmt</a> = <a href="#SimpleStmt" class="noline">SimpleStmt</a> .
+<a id="PostStmt">PostStmt</a> = <a href="#SimpleStmt" class="noline">SimpleStmt</a> .
+</pre>
+<pre class="ebnf">
+<a id="RangeClause">RangeClause</a> = <a href="#ExpressionList" class="noline">ExpressionList</a> ( "=" | ":=" ) "range" <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="GoStmt">GoStmt</a> = "go" <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="SelectStmt">SelectStmt</a> = "select" "{" { <a href="#CommClause" class="noline">CommClause</a> } "}" .
+<a id="CommClause">CommClause</a> = <a href="#CommCase" class="noline">CommCase</a> ":" { <a href="#Statement" class="noline">Statement</a> ";" } .
+<a id="CommCase">CommCase</a> = "case" ( <a href="#SendExpr" class="noline">SendExpr</a> | <a href="#RecvExpr" class="noline">RecvExpr</a>) | "default" .
+<a id="SendExpr">SendExpr</a> =  <a href="#Expression" class="noline">Expression</a> "&lt;-" <a href="#Expression" class="noline">Expression</a> .
+<a id="RecvExpr">RecvExpr</a> =  [ <a href="#Expression" class="noline">Expression</a> ( "=" | ":=" ) ] "&lt;-" <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="ReturnStmt">ReturnStmt</a> = "return" [ <a href="#ExpressionList" class="noline">ExpressionList</a> ] .
+</pre>
+<pre class="ebnf">
+<a id="BreakStmt">BreakStmt</a> = "break" [ <a href="#Label" class="noline">Label</a> ] .
+</pre>
+<pre class="ebnf">
+<a id="ContinueStmt">ContinueStmt</a> = "continue" [ <a href="#Label" class="noline">Label</a> ] .
+</pre>
+<pre class="ebnf">
+<a id="GotoStmt">GotoStmt</a> = "goto" <a href="#Label" class="noline">Label</a> .
+</pre>
+<pre class="ebnf">
+<a id="FallthroughStmt">FallthroughStmt</a> = "fallthrough" .
+</pre>
+<pre class="ebnf">
+<a id="DeferStmt">DeferStmt</a> = "defer" <a href="#Expression" class="noline">Expression</a> .
+</pre>
+<pre class="ebnf">
+<a id="BuiltinCall">BuiltinCall</a> = <a href="#identifier" class="noline">identifier</a> "(" [ <a href="#BuiltinArgs" class="noline">BuiltinArgs</a> ] ")" .
+<a id="BuiltinArgs">BuiltinArgs</a> = <a href="#Type" class="noline">Type</a> [ "," <a href="#ExpressionList" class="noline">ExpressionList</a> ] | <a href="#ExpressionList" class="noline">ExpressionList</a> .
+</pre>
+<pre class="ebnf">
+<a id="SourceFile">SourceFile</a>       = <a href="#PackageClause" class="noline">PackageClause</a> ";" { <a href="#ImportDecl" class="noline">ImportDecl</a> ";" } { <a href="#TopLevelDecl" class="noline">TopLevelDecl</a> ";" } .
+</pre>
+<pre class="ebnf">
+<a id="PackageClause">PackageClause</a>  = "package" <a href="#PackageName" class="noline">PackageName</a> .
+<a id="PackageName">PackageName</a>    = <a href="#identifier" class="noline">identifier</a> .
+</pre>
+<pre class="ebnf">
+<a id="ImportDecl">ImportDecl</a>       = "import" ( <a href="#ImportSpec" class="noline">ImportSpec</a> | "(" { <a href="#ImportSpec" class="noline">ImportSpec</a> ";" } ")" ) .
+<a id="ImportSpec">ImportSpec</a>       = [ "." | <a href="#PackageName" class="noline">PackageName</a> ] <a href="#ImportPath" class="noline">ImportPath</a> .
+<a id="ImportPath">ImportPath</a>       = <a href="#string_lit" class="noline">string_lit</a> .
+</pre>
