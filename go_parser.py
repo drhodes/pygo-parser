@@ -273,8 +273,14 @@ MethodExpr    = ReceiverType + DOT + MethodName
 #-------------------------------------------------------------------------
 #TypeLit   = (ArrayType | StructType | PointerType | FunctionType | 
 #             InterfaceType | SliceType | MapType | ChannelType)
-ArrayType, StructType, PointerType, FunctionType, \
-    InterfaceType, SliceType, MapType, ChannelType  = [Forward() for x in range(8)]
+ArrayType, 
+StructType, 
+PointerType, 
+FunctionType, 
+InterfaceType, 
+SliceType, 
+MapType, 
+ChannelType  = [Forward() for x in range(8)]
 
 #-------------------------------------------------------------------------
 #  ArrayType   = "[" ArrayLength "]" ElementType .
