@@ -1,8 +1,7 @@
 from pyparsing import *
 
-
 #==================================================================
-# some utility functions
+# a testing function, the global thing makes testing cleaner.
 
 def testParse(name, xs):
     upperName = ''.join(x.upper() for x in name ) 
@@ -13,11 +12,12 @@ def testParse(name, xs):
     for x in xs:
         print x, (40-len(x))*" ", "=>", f(x)
 
-
 LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE = map(Literal, "()[]{}")
 COMMA = Literal(",")
 COLON = Literal(":")
-STAR = Literal( "*" )
+STAR = Literal("*")
+SEMI = Literal(";")
+EQUAL = Literal("=")
 
 #-------------------------------------------------------------------------
 #  unicode_char   = /* an arbitrary Unicode code point */ .
@@ -26,7 +26,10 @@ STAR = Literal( "*" )
 
 def literals_(xs): return Or(map(Literal, xs))
 
-unicode_char   = alphanums
+unicode_char   = alphanums #'''   # Not really sure about this.
+                           # what about -, or + ?? 
+                           # will it muck up the parser?
+
 #unicode_char   = ''.join(map(chr, range(28, 128)))
 unicode_letter = alphas
 unicode_digit  = "0123456789"
@@ -64,6 +67,12 @@ QualifiedIdent = Optional( PackageName + DOT ) + identifier
 testParse("QualifiedIdent", ["fmt.Printf",
                              "asdf",
                              ])
+
+
+#-------------------------------------------------------------------------
+#  TypeName  = QualifiedIdent.
+TypeName = QualifiedIdent
+
 
 #-------------------------------------------------------------------------
 #  decimal_lit = ( "1" ... "9" ) { decimal_digit } .
@@ -180,6 +189,9 @@ testParse("raw_string_lit", [" `a` ",
 testParse("interpreted_string_lit", [' "000000" ',
                                      ])
 
+testParse("string_lit", [' "000000" ',
+                                     ])
+
 #-------------------------------------------------------------------------
 log_op     = literals_(["||", "&&"])
 com_op     = Literal("<-")
@@ -190,6 +202,25 @@ binary_op  = log_op | com_op | rel_op | add_op | mul_op
 unary_op   = literals_([ "+", "-", "!", "^", "*", "&", "<-" ])
 
 
+#-------------------------------------------------------------------------
+# These are mutually recursive in one way or another. so they need to
+# be initialized here with Forward()
+
+ArrayType, \
+ElementType, \
+ElementList, \
+FunctionType, \
+InterfaceType, \
+LiteralType, \
+PointerType, \
+SliceType, \
+StructType, \
+MapType, \
+ChannelType  = [Forward() for x in range(11)]
+
+#-------------------------------------------------------------------------
+#  IdentifierList = identifier { "," identifier } .
+IdentifierList = delimitedList( identifier )
 
 #-------------------------------------------------------------------------
 BasicLit   = int_lit | float_lit | char_lit | string_lit
@@ -197,14 +228,18 @@ BasicLit   = int_lit | float_lit | char_lit | string_lit
 #-------------------------------------------------------------------------
 #  LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
 #                  SliceType | MapType | TypeName | "(" LiteralType ")" .
+LiteralType   << ( StructType | ArrayType | LBRACKET + Literal("...") + RBRACKET + ElementType |
+                   SliceType | MapType | TypeName | LPAREN + LiteralType + RPAREN )
 
 
 #-------------------------------------------------------------------------
 #  CompositeLit  = LiteralType "{" [ ElementList [ "," ] ] "}" .
+CompositeLit  = LiteralType + LBRACE + Optional( ElementList + Optional(COMMA)) + RBRACE
 
 #-------------------------------------------------------------------------
 #  GoLiteral    = BasicLit | CompositeLit | FunctionLit .
 #  Operand    = GoLiteral | QualifiedIdent | MethodExpr | "(" Expression ")" .
+
 
 #-------------------------------------------------------------------------
 #  PrimaryExpr =
@@ -218,23 +253,18 @@ BasicLit   = int_lit | float_lit | char_lit | string_lit
 #          PrimaryExpr Call .
 PrimaryExpr = Forward()
 
-
 #-------------------------------------------------------------------------
 #  UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
 #  Expression = UnaryExpr | Expression binary_op UnaryExpr .
 UnaryExpr  = Forward()
 Expression = Forward()
 
-UnaryExpr  = PrimaryExpr | unary_op + UnaryExpr 
-Expression = UnaryExpr | Expression + binary_op + UnaryExpr 
+UnaryExpr  << ( PrimaryExpr | unary_op + UnaryExpr )
+Expression << ( UnaryExpr | ( Expression + binary_op + UnaryExpr ))
 
 #-------------------------------------------------------------------------
 #  ExpressionList = Expression { "," Expression } .
 ExpressionList = delimitedList( Expression )
-
-#-------------------------------------------------------------------------
-#  TypeName  = QualifiedIdent.
-TypeName = QualifiedIdent
 
 #  TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
 #              SliceType | MapType | ChannelType .
@@ -244,6 +274,19 @@ TypeLit   = Forward()
 Type      = Forward()
 Type     << (TypeName | TypeLit | LPAREN + Type + RPAREN)
 
+#-------------------------------------------------------------------------
+#  FieldName     = identifier .
+#  ElementIndex  = Expression .
+#  Value         = Expression .
+#  Key           = FieldName | ElementIndex .
+#  Element       = [ Key ":" ] Value .
+#  ElementList   = Element { "," Element } .
+FieldName     = identifier 
+ElementIndex  = Expression
+Value         = Expression 
+Key           = FieldName | ElementIndex
+Element       = Optional( Key + COLON ) + Value
+ElementList   << delimitedList( Element )
 
 #-------------------------------------------------------------------------
 #  Selector       = "." identifier .
@@ -258,193 +301,319 @@ Slice          = LBRACKET + Expression + COLON + Optional(LBRACKET + Expression 
 TypeAssertion  = DOT + LPAREN + Type + RPAREN
 Call           = LPAREN + Optional(ExpressionList + Optional( COMMA )) + RPAREN
 
-
 #-------------------------------------------------------------------------
 MethodName         = identifier
 
 #-------------------------------------------------------------------------
 #  MethodExpr    = ReceiverType "." MethodName .
 #  ReceiverType  = TypeName | "(" "*" TypeName ")" .
-
 ReceiverType  = TypeName | LPAREN + STAR + TypeName + RPAREN
 MethodExpr    = ReceiverType + DOT + MethodName
-
 
 #-------------------------------------------------------------------------
 #TypeLit   = (ArrayType | StructType | PointerType | FunctionType | 
 #             InterfaceType | SliceType | MapType | ChannelType)
-ArrayType, 
-StructType, 
-PointerType, 
-FunctionType, 
-InterfaceType, 
-SliceType, 
-MapType, 
-ChannelType  = [Forward() for x in range(8)]
+TypeLit   << (ArrayType | StructType | PointerType | FunctionType | 
+             InterfaceType | SliceType | MapType | ChannelType)
 
 #-------------------------------------------------------------------------
 #  ArrayType   = "[" ArrayLength "]" ElementType .
 #  ArrayLength = Expression .
 #  ElementType = Type .
-ElementType = Type 
+ElementType << Type 
 ArrayLength = Expression 
-ArrayType   = LBRACKET + ArrayLength + RBRACKET + ElementType
-
-
+ArrayType   << LBRACKET + ArrayLength + RBRACKET + ElementType
 
 #-------------------------------------------------------------------------
 #SliceType = "[" "]" ElementType .
-SliceType = LBRACKET + RBRACKET + ElementType
+SliceType << LBRACKET + RBRACKET + ElementType
 
 
-"""
+#-------------------------------------------------------------------------
 #  AnonymousField = [ "*" ] TypeName .
 #  FieldDecl      = (IdentifierList Type | AnonymousField) [ Tag ] .
 #  StructType     = "struct" "{" { FieldDecl ";" } "}" .
 #  Tag            = string_lit .
+AnonymousField = Optional(STAR) + TypeName
+Tag            = string_lit 
+FieldDecl      = (IdentifierList  + Type | AnonymousField) +Optional( Tag )
+StructType     << Literal("struct") + LBRACE + ZeroOrMore( FieldDecl + SEMI ) + RBRACE
 
 
-
-#  PointerType = "*" BaseType .
+#-------------------------------------------------------------------------
 #  BaseType = Type .
+#  PointerType = "*" BaseType .
+BaseType = Type
+PointerType << STAR + BaseType
 
-#  FunctionType   = "func" Signature .
-#  Signature      = Parameters [ Result ] .
-#  Result         = Parameters | Type .
-#  Parameters     = "(" [ ParameterList [ "," ] ] ")" .
-#  ParameterList  = ParameterDecl { "," ParameterDecl } .
+
+#-------------------------------------------------------------------------
 #  ParameterDecl  = [ IdentifierList ] ( Type | "..." ) .
+#  ParameterList  = ParameterDecl { "," ParameterDecl } .
+#  Parameters     = "(" [ ParameterList [ "," ] ] ")" .
+#  Result         = Parameters | Type .
+#  Signature      = Parameters [ Result ] .
+#  FunctionType   = "func" Signature .
 
+ParameterDecl  = Optional( IdentifierList ) + Group( Type | "..." ) 
+ParameterList  = ParameterDecl + ZeroOrMore( COMMA + ParameterDecl )
+Parameters     = LPAREN + Optional( ParameterList + Optional( COMMA )) + RPAREN
+Result         = Parameters | Type
+Signature      = Parameters + Optional( Result )
+FunctionType   << Literal("func") + Signature 
+
+
+#-------------------------------------------------------------------------
 #  InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
 #  MethodSpec         = MethodName Signature | InterfaceTypeName .
 #  InterfaceTypeName  = TypeName .
+InterfaceTypeName  = TypeName 
+MethodSpec         = MethodName + Signature | InterfaceTypeName 
+InterfaceType      << Literal("interface") + LBRACE + ZeroOrMore( MethodSpec + SEMI ) + RBRACE
 
+
+#-------------------------------------------------------------------------
 #  MapType     = "map" "[" KeyType "]" ElementType .
 #  KeyType     = Type .
+KeyType     = Type 
+MapType     << Literal("map") + LBRACKET + KeyType + RBRACKET + ElementType 
 
-#  ChannelType   = Channel | SendChannel | RecvChannel .
-#  Channel       = "chan" ElementType .
-#  SendChannel   = "chan" "<-" ElementType .
+
+#-------------------------------------------------------------------------
 #  RecvChannel   = "<-" "chan" ElementType .
+#  SendChannel   = "chan" "<-" ElementType .
+#  Channel       = "chan" ElementType .
+#  ChannelType   = Channel | SendChannel | RecvChannel .
+LARROW = Literal( "<-" )
+CHAN = Literal( "chan" )
 
-#  Block = "{" { Statement ";" } "}" .
+RecvChannel   = LARROW + CHAN + ElementType
+SendChannel   = CHAN + LARROW + ElementType 
+Channel       = CHAN + ElementType 
+ChannelType   << ( Channel | SendChannel | RecvChannel )
 
-#  Declaration   = ConstDecl | TypeDecl | VarDecl .
-#  TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
-
-
-#  IdentifierList = identifier { "," identifier } .
-
-#  ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
-#  ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
-
-#  TypeDecl     = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
-#  TypeSpec     = identifier Type .
-
-#  VarDecl     = "var" ( VarSpec | "(" { VarSpec ";" } ")" ) .
-#  VarSpec     = IdentifierList ( Type [ "=" ExpressionList ] | "=" ExpressionList ) .
-
-#  ShortVarDecl = IdentifierList ":=" ExpressionList .
-
-#  FunctionDecl = "func" identifier Signature [ Body ] .
-#  Body         = Block.
-
-#  MethodDecl   = "func" Receiver MethodName Signature [ Body ] .
-#  Receiver     = "(" [ identifier ] [ "*" ] BaseTypeName ")" .
-#  BaseTypeName = identifier .
-
-
-
-
-
-#  ElementList   = Element { "," Element } .
-#  Element       = [ Key ":" ] Value .
-#  Key           = FieldName | ElementIndex .
-#  FieldName     = identifier .
-#  ElementIndex  = Expression .
-#  Value         = Expression .
-
-#  FunctionLit = FunctionType Body .
-
-
-
-
-
-#  Conversion = LiteralType "(" Expression ")" .
-
+#-------------------------------------------------------------------------
 #  Statement =
 #          Declaration | LabeledStmt | SimpleStmt |
 #          GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
 #          FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
 #          DeferStmt .
+Declaration, LabeledStmt, SimpleStmt, GoStmt, ReturnStmt, BreakStmt, ContinueStmt, GotoStmt, FallthroughStmt, Block, IfStmt, SwitchStmt, SelectStmt, ForStmt, DeferStmt = [Forward() for x in range(15)]
 
+Statement = Declaration | LabeledStmt | SimpleStmt | GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt | FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt | DeferStmt
+
+#-------------------------------------------------------------------------
+#  Block = "{" { Statement ";" } "}" .
+Block << LBRACE + ZeroOrMore( Statement + SEMI ) + RBRACE
+
+#-------------------------------------------------------------------------
+#  ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
+#  ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
+ConstSpec      = IdentifierList + Optional( Optional( Type ) + EQUAL + ExpressionList)
+ConstDecl      = Literal("const") + Group( ConstSpec | LPAREN + ZeroOrMore( ConstSpec + SEMI ) + RPAREN) 
+
+#-------------------------------------------------------------------------
+#  TypeSpec     = identifier Type .
+#  TypeDecl     = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
+TypeSpec     = identifier + Type
+TypeDecl     = Literal("type") + Group( TypeSpec | LPAREN + ZeroOrMore( TypeSpec + SEMI ) + RPAREN)
+
+#-------------------------------------------------------------------------
+#  VarSpec     = IdentifierList ( Type [ "=" ExpressionList ] | "=" ExpressionList ) .
+#  VarDecl     = "var" ( VarSpec | "(" { VarSpec ";" } ")" ) .
+VarSpec     = IdentifierList + Group(Type + Optional(EQUAL + ExpressionList) | EQUAL + ExpressionList)
+VarDecl     = Literal("var") + Group( VarSpec | LPAREN + ZeroOrMore(VarSpec + SEMI) + RPAREN)
+
+#-------------------------------------------------------------------------
+#  Body         = Block.
+#  FunctionDecl = "func" identifier Signature [ Body ] .
+Body         = Block
+FunctionDecl = Literal("func") + identifier + Signature + Optional( Body )
+
+#-------------------------------------------------------------------------
+#  BaseTypeName = identifier .
+#  Receiver     = "(" [ identifier ] [ "*" ] BaseTypeName ")" .
+#  MethodDecl   = "func" Receiver MethodName Signature [ Body ] .
+BaseTypeName = identifier
+Receiver     = LPAREN + Optional(identifier ) + Optional(STAR) +  BaseTypeName + RPAREN
+MethodDecl   = Literal("func") + Receiver + MethodName + Signature + Optional( Body )
+
+#-------------------------------------------------------------------------
+#  Declaration   = ConstDecl | TypeDecl | VarDecl .
+#  TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
+Declaration   << ( ConstDecl | TypeDecl | VarDecl )
+TopLevelDecl  = Declaration | FunctionDecl | MethodDecl 
+
+#-------------------------------------------------------------------------
+#  ShortVarDecl = IdentifierList ":=" ExpressionList .
+ShortVarDecl = IdentifierList + Literal(":=") + ExpressionList 
+
+#-------------------------------------------------------------------------
+#  FunctionLit = FunctionType Body .
+FunctionLit = FunctionType + Body
+
+#-------------------------------------------------------------------------
+#  Conversion = LiteralType "(" Expression ")" .
+Conversion = LiteralType + LPAREN + Expression + RPAREN
+
+#-------------------------------------------------------------------------
+#  ExpressionStmt = Expression .
+#  assign_op = [ add_op | mul_op ] "=" .
+#  IncDecStmt = Expression ( "++" | "--" ) .
+#  Assignment = ExpressionList assign_op ExpressionList .
+ExpressionStmt = Expression
+assign_op = Optional(add_op | mul_op) + EQUAL
+IncDecStmt = Expression + ( Literal("++") | Literal("--") )
+Assignment = ExpressionList + assign_op + ExpressionList
+
+#-------------------------------------------------------------------------
 #  SimpleStmt = EmptyStmt | ExpressionStmt | IncDecStmt | Assignment | ShortVarDecl .
-
 #  EmptyStmt = .
 
-#  LabeledStmt = Label ":" Statement .
+EmptyStmt = Word('') # !! ATTN THIS COULD BE THE PROBLEM. !!
+SimpleStmt << ( EmptyStmt | ExpressionStmt | IncDecStmt | Assignment | ShortVarDecl )
+
+#-------------------------------------------------------------------------
 #  Label       = identifier .
+#  LabeledStmt = Label ":" Statement .
+Label       = identifier 
+LabeledStmt << ( Label + COLON + Statement )
 
-#  ExpressionStmt = Expression .
-
-#  IncDecStmt = Expression ( "++" | "--" ) .
-
-#  Assignment = ExpressionList assign_op ExpressionList .
-
-#  assign_op = [ add_op | mul_op ] "=" .
-
+#-------------------------------------------------------------------------
 #  IfStmt    = "if" [ SimpleStmt ";" ] [ Expression ] Block [ "else" Statement ] .
+IF = Literal("if")
+ELSE = Literal("else")
 
+IfStmt << IF + Optional( SimpleStmt + SEMI) + Optional( Expression ) + Block + Optional( ELSE + Statement )
+
+#-------------------------------------------------------------------------
+#  TypeList        = Type { "," Type } .
+#  TypeSwitchCase  = "case" TypeList | "default" .
+#  TypeCaseClause  = TypeSwitchCase ":" { Statement ";" } .
+#  TypeSwitchGuard = [ identifier ":=" ] Expression "." "(" "type" ")" .
+#  TypeSwitchStmt  = "switch" [ SimpleStmt ";" ] TypeSwitchGuard "{" { TypeCaseClause } "}" .
+TypeList        = Type + ZeroOrMore( COMMA + Type)
+TypeSwitchCase  = Literal("case") + (TypeList | Literal("default"))
+TypeCaseClause  = TypeSwitchCase + COLON + ZeroOrMore( Statement + SEMI )
+TypeSwitchGuard = Optional( identifier + Literal(":=")) +  Expression + DOT + LPAREN + Literal("type") + RPAREN
+TypeSwitchStmt  = (Literal("switch") + Optional( SimpleStmt + SEMI ) + 
+                   TypeSwitchGuard + LBRACE + ZeroOrMore( TypeCaseClause ) + RBRACE)
+
+#-------------------------------------------------------------------------
+#  ExprSwitchCase = "case" ExpressionList | "default" .
+#  ExprCaseClause = ExprSwitchCase ":" { Statement ";" } .
+#  ExprSwitchStmt = "switch" [ SimpleStmt ";" ] [ Expression ] "{" { ExprCaseClause } "}" .
 #  SwitchStmt = ExprSwitchStmt | TypeSwitchStmt .
 
-#  ExprSwitchStmt = "switch" [ SimpleStmt ";" ] [ Expression ] "{" { ExprCaseClause } "}" .
-#  ExprCaseClause = ExprSwitchCase ":" { Statement ";" } .
-#  ExprSwitchCase = "case" ExpressionList | "default" .
+ExprSwitchCase = Literal("case") + (ExpressionList | Literal("default"))
+ExprCaseClause = ExprSwitchCase + COLON + ZeroOrMore( Statement + SEMI )
+ExprSwitchStmt = ( Literal("switch") + Optional( SimpleStmt + SEMI ) + 
+                   Optional( Expression ) + LBRACE + ZeroOrMore( ExprCaseClause ) + RBRACE )
+SwitchStmt << ( ExprSwitchStmt | TypeSwitchStmt )
 
-#  TypeSwitchStmt  = "switch" [ SimpleStmt ";" ] TypeSwitchGuard "{" { TypeCaseClause } "}" .
-#  TypeSwitchGuard = [ identifier ":=" ] Expression "." "(" "type" ")" .
-#  TypeCaseClause  = TypeSwitchCase ":" { Statement ";" } .
-#  TypeSwitchCase  = "case" TypeList | "default" .
-#  TypeList        = Type { "," Type } .
-
-#  ForStmt = "for" [ Condition | ForClause | RangeClause ] Block .
-#  Condition = Expression .
-
-#  ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
+#-------------------------------------------------------------------------
 #  InitStmt = SimpleStmt .
 #  PostStmt = SimpleStmt .
-
+#  ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
 #  RangeClause = ExpressionList ( "=" | ":=" ) "range" Expression .
 
-#  GoStmt = "go" Expression .
+#  Condition = Expression .
+#  ForStmt = "for" [ Condition | ForClause | RangeClause ] Block .
+InitStmt = SimpleStmt 
+PostStmt = SimpleStmt 
+Condition = Expression 
 
+ForClause = Optional(InitStmt) + SEMI + Optional( Condition ) + SEMI + Optional( PostStmt ) 
+RangeClause = ExpressionList + Group( Literal("=") | Literal(":=") ) + Literal("range") + Expression 
+ForStmt << ( Literal("for") + Optional( Condition | ForClause | RangeClause ) + Block )
+
+#-------------------------------------------------------------------------
+#  GoStmt = "go" Expression .
+GoStmt << Literal("go") + Expression
+
+#-------------------------------------------------------------------------
 #  SelectStmt = "select" "{" { CommClause } "}" .
 #  CommClause = CommCase ":" { Statement ";" } .
 #  CommCase = "case" ( SendExpr | RecvExpr) | "default" .
 #  SendExpr =  Expression "<-" Expression .
 #  RecvExpr =  [ Expression ( "=" | ":=" ) ] "<-" Expression .
 
-#  ReturnStmt = "return" [ ExpressionList ] .
+RecvExpr =  Optional( Expression + Optional( EQUAL | Literal(":="))) + LARROW + Expression
+SendExpr =  Expression + LARROW + Expression 
+CommCase = Literal("case") + Group( SendExpr | RecvExpr) | Literal("default")
+CommClause = CommCase + COLON + ZeroOrMore( Statement + SEMI )
+SelectStmt << ( Literal("select") + LBRACE + ZeroOrMore( CommClause ) + RBRACE )
 
-#  BreakStmt = "break" [ Label ] .
+ReturnStmt << Literal("return") + Optional( ExpressionList )
+BreakStmt << Literal("break") + Optional( Label )
+ContinueStmt << Literal("continue") + Optional( Label )
+GotoStmt << Literal("goto") + Label
+FallthroughStmt << Literal("fallthrough")
+DeferStmt << Literal("defer") + Expression
 
-#  ContinueStmt = "continue" [ Label ] .
+#-------------------------------------------------------------------------
+#  GoLiteral    = BasicLit | CompositeLit | FunctionLit .
+#  Operand    = GoLiteral | QualifiedIdent | MethodExpr | "(" Expression ")" .
+GoLiteral  = BasicLit | CompositeLit | FunctionLit 
+Operand    = GoLiteral | QualifiedIdent | MethodExpr | LPAREN + Expression + RPAREN
 
-#  GotoStmt = "goto" Label .
-
-#  FallthroughStmt = "fallthrough" .
-
-#  DeferStmt = "defer" Expression .
-
-#  BuiltinCall = identifier "(" [ BuiltinArgs ] ")" .
+#-------------------------------------------------------------------------
 #  BuiltinArgs = Type [ "," ExpressionList ] | ExpressionList .
+#  BuiltinCall = identifier "(" [ BuiltinArgs ] ")" .
+BuiltinArgs = Type + Optional( COMMA + ExpressionList) | ExpressionList
+BuiltinCall = identifier + LPAREN + Optional( BuiltinArgs ) + RPAREN
 
-#  SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
+#-------------------------------------------------------------------------
+#  PrimaryExpr =         
+#          Operand |
+#          Conversion |
+#          BuiltinCall |
+#          PrimaryExpr Selector |
+#          PrimaryExpr Index |
+#          PrimaryExpr Slice |
+#          PrimaryExpr TypeAssertion |
+#          PrimaryExpr Call .
 
-#  PackageClause  = "package" PackageName .
-#  PackageName    = identifier .
+PrimaryExpr << ( Operand |
+                Conversion |
+                BuiltinCall |
+                PrimaryExpr + Selector |
+                PrimaryExpr + Index |
+                PrimaryExpr + Slice |
+                PrimaryExpr + TypeAssertion |
+                PrimaryExpr + Call )
 
-#  ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
-#  ImportSpec       = [ "." | PackageName ] ImportPath .
+
+#-------------------------------------------------------------------------
 #  ImportPath       = string_lit .
+#  ImportSpec       = [ "." | PackageName ] ImportPath .
+#  ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
+ImportPath       = string_lit 
+ImportSpec       = Optional(DOT + PackageName) + ImportPath 
+ImportDecl       = Literal("import") + Group( ImportSpec | (LPAREN + ZeroOrMore( ImportSpec + SEMI ) + RPAREN) )
+
+#testParse("ImportSpec", ['. "asdf"'])
+#testParse("ImportDecl", ['import . "asdf"'])
+
+#-------------------------------------------------------------------------
+#  PackageName    = identifier .
+#  PackageClause  = "package" PackageName .
+#  SourceFile     = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
+PackageName    = identifier 
+PackageClause  = Literal("package") + PackageName 
+SourceFile     = PackageClause + SEMI + ZeroOrMore( ImportDecl + SEMI ) + ZeroOrMore( TopLevelDecl + SEMI )
+
+
+testParse("PackageClause", ["package asdf"])
+
+
+example ="""
+package main 
+
+import . "fmt";
+
+func main(){
+    Printf("ASDF");
+}
 """
+print SourceFile.parseString(example)
