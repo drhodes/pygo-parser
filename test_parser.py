@@ -12,6 +12,8 @@ def testParse(name, xs):
     for x in xs:
         print x, (40-len(x))*" ", "=>", f(x)
 
+space = ''
+
 #  unicode_char   = /* an arbitrary Unicode code point */ .
 #  unicode_letter = /* a Unicode code point classified as "Letter" */ .
 #  unicode_digit  = /* a Unicode code point classified as "Digit" */ .
@@ -22,6 +24,8 @@ def testParse(name, xs):
 #  hex_digit     = "0" ... "9" | "A" ... "F" | "a" ... "f" .
 
 #  identifier = letter { letter | unicode_digit } .
+testParse("identifier", ["asdf",
+                         "a"])
 
 #-------------------------------------------------------------------------------
 #  hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
@@ -146,26 +150,58 @@ testParse( "PointerType", ["*int"])
 #  BaseType = Type .
 testParse( "BaseType", ["int"])
 
+#  IdentifierList = identifier { "," identifier } .
+testParse("IdentifierList", ["int, int, int", 
+                             "a, a, a",
+                             "x, y, z, ASDF",
+                             ])
+
 #  FunctionType   = "func" Signature .
+testParse( "FunctionType", [ "func (x, y float) bool" ])
+
 #  Signature      = Parameters [ Result ] .
+testParse( "Signature", [ "(x, y float) bool",
+                          "(int, int) bool",
+                          ])
+
 #  Result         = Parameters | Type .
+testParse( "Result",  ["(x, y float, a, b int) bool",
+                       "(x, y float) bool, bool"
+                       ] )
+
 #  Parameters     = "(" [ ParameterList [ "," ] ] ")" .
+testParse( "Parameters", [ "(x, y float, a, b int)",
+                           "(x, y float, a, b int,)" 
+                           ])
+
+
 #  ParameterList  = ParameterDecl { "," ParameterDecl } .
-testParse( "ParameterList", [ "as, ba sdf",
-                              "x, y int",
+testParse( "ParameterList", [ "xs, ys float",
+                              "x, y float",
                               "as, ba sdf, as, ba sdf ",
                               ])
 
 #  ParameterDecl  = [ IdentifierList ] ( Type | "..." ) .
-testParse( "ParameterDecl", ["int, atf sdf",
-                             "int ..."
+testParse( "ParameterDecl", ["xs, ys ints",
+                             "x, ys float",
+                             "x, y ...",
+                             "aa ...",
+                             "x, y float",
                              ])
 
 
-#  InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
-#  MethodSpec         = MethodName Signature | InterfaceTypeName .
 #  MethodName         = identifier .
 #  InterfaceTypeName  = TypeName .
+#  MethodSpec         = MethodName Signature | InterfaceTypeName .
+testParse( "MethodSpec", ["foo (int, int) bool"])
+
+#  InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
+testParse( "InterfaceType", ["interface{}",
+                             
+                             ])
+
+
+
 
 #  MapType     = "map" "[" KeyType "]" ElementType .
 #  KeyType     = Type .
@@ -183,8 +219,6 @@ testParse( "ParameterDecl", ["int, atf sdf",
 #  ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
 #  ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
 
-#  IdentifierList = identifier { "," identifier } .
-testParse("IdentifierList", ["int, int, int"])
 
 
 #  ExpressionList = Expression { "," Expression } .

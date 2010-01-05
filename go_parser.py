@@ -41,17 +41,19 @@ hex_digit     = unicode_digit + "ABCDEF" + "abcdef"
 
 #-------------------------------------------------------------------------
 #  identifier = letter { letter | unicode_digit } .
-identifier = literals_(letter) + Optional( Word( letter + unicode_digit ))
+# identifier = literals_(letter) + ZeroOrMore( literals_( letter + unicode_digit )) this isn't working
+identifier = Word( letter + unicode_digit )
+
 def identifierAction(x):
     return ''.join(list(x))
 identifier.setParseAction(identifierAction)
-
 
 #-------------------------------------------------------------------------
 #  PackageClause  = "package" PackageName .
 #  PackageName    = identifier .
 PackageName = identifier
 PackageClause = Literal("package") + PackageName
+
 
 #-------------------------------------------------------------------------
 #  QualifiedIdent = [ PackageName "." ] identifier .
@@ -68,7 +70,6 @@ TypeName = QualifiedIdent
 #  octal_lit   = "0" { octal_digit } .
 #  hex_lit     = "0" ( "x" | "X" ) hex_digit { hex_digit } .
 #  int_lit     = decimal_lit | octal_lit | hex_lit .
-
 decimal_lit = literals_("123456789") + Word(decimal_digit)
 octal_lit   = Literal("0") + Word(octal_digit)
 hex_lit     = (Literal("0x") | Literal("0X")) + Word(hex_digit)
@@ -163,7 +164,7 @@ ChannelType  = [Forward() for x in range(11)]
 
 #-------------------------------------------------------------------------
 #  IdentifierList = identifier { "," identifier } .
-IdentifierList = delimitedList( identifier )
+IdentifierList = identifier + ZeroOrMore( COMMA + identifier )
 
 #-------------------------------------------------------------------------
 BasicLit   = int_lit | float_lit | char_lit | string_lit
@@ -201,7 +202,7 @@ ExpressionList = delimitedList( Expression )
 
 TypeLit   = Forward()
 Type      = Forward()
-Type     << (TypeName | TypeLit | LPAREN + Type + RPAREN)
+Type     << ( TypeName | TypeLit | LPAREN + Type + RPAREN )
 
 #-------------------------------------------------------------------------
 #  FieldName     = identifier .
@@ -282,10 +283,10 @@ PointerType << STAR + BaseType
 #  Parameters     = "(" [ ParameterList [ "," ] ] ")" .
 #  Result         = Parameters | Type .
 #  Signature      = Parameters [ Result ] .
-#  FunctionType   = "func" Signature .
+#  FunctionType   = "func" Signature.
 
-ParameterDecl  = Optional( IdentifierList ) + Group( Type | Literal("...")) 
-ParameterList  = delimitedList( Group( ParameterDecl ))
+ParameterDecl  = Optional(IdentifierList) + ( Type | Literal("...") )
+ParameterList  = delimitedList( Group( ParameterDecl ) )
 Parameters     = LPAREN + Optional( ParameterList + Optional( COMMA )) + RPAREN
 Result         = Parameters | Type
 Signature      = Parameters + Optional( Result )
