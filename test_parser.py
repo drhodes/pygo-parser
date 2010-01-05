@@ -99,26 +99,37 @@ testParse("escaped_char", [r'\n',
                            r'\\',
                            ])
 
+#-------------------------------------------------------------------------------
 #  raw_string_lit         = "`" { unicode_char } "`" .
-#  interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
-#  string_lit             = raw_string_lit | interpreted_string_lit .
-
 testParse("raw_string_lit", [" `a` ",
                              " `asd123f` ",
                              ])
 
+#  interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
 testParse("interpreted_string_lit", [' "000000" ' ])
 
-testParse("string_lit", [' "000000" ', ])
+#  string_lit             = raw_string_lit | interpreted_string_lit .
+testParse("string_lit", [' "000000" ',
+                         ' `_123_as` ',
+                         ])
 
 
 
-#  Type      = TypeName | TypeLit | "(" Type ")" .
 #  TypeName  = QualifiedIdent.
 #  TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
 #              SliceType | MapType | ChannelType .
 
+
+#  Type      = TypeName | TypeLit | "(" Type ")" .
+testParse("Type", [' int  ',
+                   ' (float) ',
+                   ])
+
 #  ArrayType   = "[" ArrayLength "]" ElementType .
+#  RuntimeError: maximum recursion depth exceeded
+#testParse("ArrayType", [" [2]int "]) 
+
+
 #  ArrayLength = Expression .
 #  ElementType = Type .
 
@@ -130,7 +141,10 @@ testParse("string_lit", [' "000000" ', ])
 #  Tag            = string_lit .
 
 #  PointerType = "*" BaseType .
+testParse( "PointerType", ["*int"])
+
 #  BaseType = Type .
+testParse( "BaseType", ["int"])
 
 #  FunctionType   = "func" Signature .
 #  Signature      = Parameters [ Result ] .
@@ -138,6 +152,8 @@ testParse("string_lit", [' "000000" ', ])
 #  Parameters     = "(" [ ParameterList [ "," ] ] ")" .
 #  ParameterList  = ParameterDecl { "," ParameterDecl } .
 #  ParameterDecl  = [ IdentifierList ] ( Type | "..." ) .
+testParse( "ParameterDecl", ["int,atf"])
+
 
 #  InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
 #  MethodSpec         = MethodName Signature | InterfaceTypeName .
@@ -161,6 +177,9 @@ testParse("string_lit", [' "000000" ', ])
 #  ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
 
 #  IdentifierList = identifier { "," identifier } .
+testParse("IdentifierList", ["int, int, int"])
+
+
 #  ExpressionList = Expression { "," Expression } .
 
 #  TypeDecl     = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
@@ -183,10 +202,11 @@ testParse("string_lit", [' "000000" ', ])
 #  BasicLit   = int_lit | float_lit | char_lit | string_lit .
 
 #  QualifiedIdent = [ PackageName "." ] identifier .
-testParse("QualifiedIdent", ["fmt.Printf",
+'''
+testParse("QualifiedIdent", ["asdf_asdasdf",
                              "asdf",
                              ])
-
+'''
 
 #  CompositeLit  = LiteralType "{" [ ElementList [ "," ] ] "}" .
 #  LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
@@ -310,7 +330,7 @@ func main(){
     Printf("ASDF");
 }
 """
-print SourceFile.parseString(example)
+#print SourceFile.parseString(example)
 
 
 

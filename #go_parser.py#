@@ -284,7 +284,7 @@ PointerType << STAR + BaseType
 #  Signature      = Parameters [ Result ] .
 #  FunctionType   = "func" Signature .
 
-ParameterDecl  = Optional( IdentifierList ) + Group( Type | Literal("...") ) 
+ParameterDecl  = Optional( IdentifierList ) + Group( Type | Literal("...")) 
 ParameterList  = ParameterDecl + ZeroOrMore( COMMA + ParameterDecl )
 Parameters     = LPAREN + Optional( ParameterList + Optional( COMMA )) + RPAREN
 Result         = Parameters | Type
