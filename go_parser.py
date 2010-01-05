@@ -41,7 +41,7 @@ hex_digit     = unicode_digit + "ABCDEF" + "abcdef"
 
 #-------------------------------------------------------------------------
 #  identifier = letter { letter | unicode_digit } .
-identifier = literals_(letter) + Word( letter + unicode_digit )
+identifier = literals_(letter) + Optional( Word( letter + unicode_digit ))
 def identifierAction(x):
     return ''.join(list(x))
 identifier.setParseAction(identifierAction)
@@ -284,8 +284,8 @@ PointerType << STAR + BaseType
 #  Signature      = Parameters [ Result ] .
 #  FunctionType   = "func" Signature .
 
-ParameterDecl  = Optional( IdentifierList ) + Group( Type | Literal("...") ) 
-ParameterList  = ParameterDecl + ZeroOrMore( COMMA + ParameterDecl )
+ParameterDecl  = Optional( IdentifierList ) + Group( Type | Literal("...")) 
+ParameterList  = delimitedList( Group( ParameterDecl ))
 Parameters     = LPAREN + Optional( ParameterList + Optional( COMMA )) + RPAREN
 Result         = Parameters | Type
 Signature      = Parameters + Optional( Result )

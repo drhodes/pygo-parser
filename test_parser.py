@@ -151,8 +151,15 @@ testParse( "BaseType", ["int"])
 #  Result         = Parameters | Type .
 #  Parameters     = "(" [ ParameterList [ "," ] ] ")" .
 #  ParameterList  = ParameterDecl { "," ParameterDecl } .
+testParse( "ParameterList", [ "as, ba sdf",
+                              "x, y int",
+                              "as, ba sdf, as, ba sdf ",
+                              ])
+
 #  ParameterDecl  = [ IdentifierList ] ( Type | "..." ) .
-testParse( "ParameterDecl", ["int,atf"])
+testParse( "ParameterDecl", ["int, atf sdf",
+                             "int ..."
+                             ])
 
 
 #  InterfaceType      = "interface" "{" { MethodSpec ";" } "}" .
