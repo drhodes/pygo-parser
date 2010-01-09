@@ -22,7 +22,7 @@ Repetition  = Forward()
 EQUAL = Suppress("=")
 DOT = Literal(".")
 PIPE = Literal("|")
-DQUOTE = Suppress('"')
+DQUOTE = Literal('"')
 TICK = Literal("`")
 LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LANGLE, RANGLE = map(Literal, "(){}[]<>")
 
@@ -37,7 +37,7 @@ token = (DQUOTE + Word(alphanums+"!#$%&'()*+,-./:;<=>@[]^_`{|}") + DQUOTE |
          TICK + Or(map(Literal, alphanums+"""_."'""" + "\\")) + TICK )
          
 def tokenAction(result):
-    return ''.join(result)
+    return "Literal(" + ''.join(result) + ")"
 token.setParseAction(tokenAction)
 
 
@@ -48,6 +48,7 @@ class ProductionP(object):
     def __init__(self, rule):
         self.name = rule.asList()[0]
         self.rule = rule
+        print self.name, "= Forward()"
     def __repr__(self):
         return str(self.rule.asList())
 
