@@ -24,14 +24,13 @@ DOT = Literal(".")
 PIPE = Literal("|")
 DQUOTE = Literal('"')
 TICK = Literal("`")
-LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LANGLE, RANGLE = map(Literal, "(){}[]<>")
+LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, LANGLE, RANGLE = map(Suppress, "(){}[]<>")
 
 
 #------------------------------------------------------------------
 class TokenP(object):
     def __init__(self, rule):
         pass
-
 
 token = (DQUOTE + Word(alphanums+"!#$%&'()*+,-./:;<=>@[]^_`{|}") + DQUOTE |
          TICK + Or(map(Literal, alphanums+"""_."'""" + "\\")) + TICK )
@@ -40,8 +39,8 @@ def tokenAction(result):
     return "Literal(" + ''.join(result) + ")"
 token.setParseAction(tokenAction)
 
-
 production_name = Word(alphas + "_")
+
 #------------------------------------------------------------------
 # Production  = production_name "=" Expression "." .
 class ProductionP(object):
@@ -49,6 +48,9 @@ class ProductionP(object):
         self.name = rule.asList()[0]
         self.rule = rule
         print self.name, "= Forward()"
+    def process(self):        
+        print self.name, "<< (", self.rule[1:],  ")"
+
     def __repr__(self):
         return str(self.rule.asList())
 
@@ -62,11 +64,29 @@ Production.setParseAction(productionAction)
 #------------------------------------------------------------------
 # Expression  = Alternative { "|" Alternative } .
 # Expression << Alternative + ZeroOrMore(PIPE + Alternative) 
-Expression << Alternative + ZeroOrMore(Suppress(PIPE) + Alternative) 
+Expression << Alternative + ZeroOrMore(PIPE + Alternative) 
+class ExpressionP(object):
+    def __init__(self, rule):
+        self.rule = rule
+
+    def __repr__(self):
+        return str(self.rule)
+#Expression.setParseAction(ExpressionP)
+
+
 
 #------------------------------------------------------------------
 # Alternative = Term { Term } .
 Alternative <<  ZeroOrMore(Term)
+class AlternativeP(object):
+    def __init__(self, rule):
+        self.rule = rule
+
+    def __repr__(self):
+        return ' + '.join(map(str, self.rule.asList()))
+Alternative.setParseAction(AlternativeP)
+
+
 
 #------------------------------------------------------------------
 # Term        = production_name | token [ "..." token ] | Group | Option | Repetition .
@@ -75,11 +95,26 @@ Term <<  (production_name |
           Group |
           Option |
           Repetition)
+class TermP(object):
+    def __init__(self, rule):
+        self.rule = rule
+
+    def __repr__(self):
+        return str(self.rule)
+Term.setParseAction(TermP)
+
+
 
 #------------------------------------------------------------------
 # Group       = "(" Expression ")" .
 Group << (LPAREN + Expression + RPAREN)
+class GroupP(object):
+    def __init__(self, rule):
+        self.rule = rule
 
+    def __repr__(self):
+        return "( %s )" % (str(self.rule))
+Group.setParseAction(GroupP)
 
 #------------------------------------------------------------------
 # Option      = "[" Expression "]" .
@@ -110,7 +145,3 @@ Repetition.setParseAction(RepetitionP)
 
 Grammar = ZeroOrMore(Production)
 
-temp = open('./go.ebnf').read()
-
-#print temp
-print Grammar.parseString(temp)
